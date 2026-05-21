@@ -597,7 +597,7 @@ int metasSomam100(const Carteira *carteira) {
 void exibirRequisitosAcademicos(void) {
     limparTela();
     printf("============================================================\n");
-    printf("             REQUISITOS TECNICOS DO TRABALHO\n");
+    printf("             REQUISITOS TECNICOS DO TRABALHO    o   \n");
     printf("============================================================\n");
     printf("1. Estruturas Condicionais\n");
     printf("   - if/else: usado nas validacoes, alertas e relatorios.\n");
