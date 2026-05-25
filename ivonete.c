@@ -40,20 +40,29 @@ typedef struct {
     int preenchida;
 } Carteira;
 
+static int atalhoRetornoMenuAtivo = 0;
+static int retornoMenuSolicitado = 0;
+
 void limparTela(void);
 void pausar(void);
 void retornarMenuPrincipal(void);
+void ativarAtalhoRetornoMenu(void);
+void desativarAtalhoRetornoMenu(void);
+int consumirRetornoMenuSolicitado(void);
+int linhaSolicitaRetornoMenu(const char *linha);
+void exibirAtalhoRetornoMenu(void);
 int confirmarContinuar(const char *textoContinuar);
 int menuPrincipal(void);
 int lerInteiroFaixa(const char *mensagem, int minimo, int maximo);
 double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual);
-void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho);
+int lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho);
 void inicializarCarteira(Carteira *carteira);
 void calcularOrcamentoIdeal(Orcamento *orcamento);
 void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][30]);
 void escolherPesos(Carteira *carteira);
+int identificarPerfilQuestionario(void);
+const char *nomePerfilInvestidor(int perfil);
 void definirPerfilAutomatico(Carteira *carteira, int perfil);
-void definirPesosManuais(Carteira *carteira);
 double somarPesos(const Carteira *carteira);
 void cadastrarCarteiraAtual(Carteira *carteira);
 void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]);
@@ -126,6 +135,68 @@ void pausar(void) {
     fgets(linha, sizeof(linha), stdin);
 }
 
+void ativarAtalhoRetornoMenu(void) {
+    atalhoRetornoMenuAtivo = 1;
+    retornoMenuSolicitado = 0;
+}
+
+void desativarAtalhoRetornoMenu(void) {
+    atalhoRetornoMenuAtivo = 0;
+    retornoMenuSolicitado = 0;
+}
+
+int consumirRetornoMenuSolicitado(void) {
+    int solicitado = retornoMenuSolicitado;
+    retornoMenuSolicitado = 0;
+    return solicitado;
+}
+
+int linhaSolicitaRetornoMenu(const char *linha) {
+    const char *inicio;
+    const char *fim;
+    size_t tamanho;
+
+    if (linha == NULL) {
+        return 0;
+    }
+
+    inicio = linha;
+    while (isspace((unsigned char)*inicio)) {
+        inicio++;
+    }
+
+    fim = inicio + strlen(inicio);
+    while (fim > inicio && isspace((unsigned char)*(fim - 1))) {
+        fim--;
+    }
+
+    tamanho = (size_t)(fim - inicio);
+
+    if (tamanho == 4 &&
+        tolower((unsigned char)inicio[0]) == 'm' &&
+        tolower((unsigned char)inicio[1]) == 'e' &&
+        tolower((unsigned char)inicio[2]) == 'n' &&
+        tolower((unsigned char)inicio[3]) == 'u') {
+        return 1;
+    }
+
+    if (tamanho == 6 &&
+        tolower((unsigned char)inicio[0]) == 'v' &&
+        tolower((unsigned char)inicio[1]) == 'o' &&
+        tolower((unsigned char)inicio[2]) == 'l' &&
+        tolower((unsigned char)inicio[3]) == 't' &&
+        tolower((unsigned char)inicio[4]) == 'a' &&
+        tolower((unsigned char)inicio[5]) == 'r') {
+        return 1;
+    }
+
+    return 0;
+}
+
+void exibirAtalhoRetornoMenu(void) {
+    printf("Digite MENU (ou VOLTAR) a qualquer momento para retornar ao menu principal.\n\n");
+}
+
 void retornarMenuPrincipal(void) {
     printf("\n0 - Retornar ao menu principal\n");
     lerInteiroFaixa("Escolha uma opcao: ", 0, 0);
@@ -169,6 +240,11 @@ int lerInteiroFaixa(const char *mensagem, int minimo, int maximo) {
             continue;
         }
 
+        if (atalhoRetornoMenuAtivo && linhaSolicitaRetornoMenu(linha)) {
+            retornoMenuSolicitado = 1;
+            return minimo;
+        }
+
         errno = 0;
         valor = strtol(linha, &fim, 10);
 
@@ -205,6 +281,11 @@ double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual) {
             continue;
         }
 
+        if (atalhoRetornoMenuAtivo && linhaSolicitaRetornoMenu(linha)) {
+            retornoMenuSolicitado = 1;
+            return minimo;
+        }
+
         errno = 0;
         valor = strtod(linha, &fim);
 
@@ -227,7 +308,7 @@ double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual) {
     }
 }
 
-void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho) {
+int lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho) {
     char linha[TAM_LINHA];
     char *inicio;
     char *fim;
@@ -239,6 +320,11 @@ void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho) {
             printf("Entrada invalida. Tente novamente.\n");
             clearerr(stdin);
             continue;
+        }
+
+        if (atalhoRetornoMenuAtivo && linhaSolicitaRetornoMenu(linha)) {
+            retornoMenuSolicitado = 1;
+            return 0;
         }
 
         linha[strcspn(linha, "\n")] = '\0';
@@ -264,7 +350,7 @@ void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho) {
             destino[tamanho - 1] = '\0';
         }
 
-        return;
+        return 1;
     }
 }
 
@@ -318,10 +404,28 @@ void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][
     printf("Informe seu nome, idade e renda. Use ponto para centavos.\n");
     printf("O plano sera calculado pela regra 50-30-20.\n");
     printf("Exemplo: 2500.50\n\n");
+    exibirAtalhoRetornoMenu();
 
-    lerTextoObrigatorio("Nome do usuario: ", orcamento->nome, sizeof(orcamento->nome));
+    ativarAtalhoRetornoMenu();
+
+    if (!lerTextoObrigatorio("Nome do usuario: ", orcamento->nome, sizeof(orcamento->nome))) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
     orcamento->idade = lerInteiroFaixa("Idade do usuario: ", 1, 120);
+    if (consumirRetornoMenuSolicitado()) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
     orcamento->rendaMensal = lerDoubleMinimo("Ganho mensal total: R$ ", 0.0, 0);
+    if (consumirRetornoMenuSolicitado()) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    desativarAtalhoRetornoMenu();
     calcularOrcamentoIdeal(orcamento);
     orcamento->preenchido = 1;
 
@@ -356,7 +460,8 @@ void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][
 }
 
 void escolherPesos(Carteira *carteira) {
-    int opcao;
+    int i;
+    int perfil;
 
     limparTela();
     printf("=============== PESOS DA CARTEIRA ===============\n");
@@ -367,34 +472,118 @@ void escolherPesos(Carteira *carteira) {
 
     limparTela();
     printf("=============== PESOS DA CARTEIRA ===============\n");
-    printf("Os pesos indicam quanto do dinheiro deve ir para cada investimento.\n");
-    printf("A soma obrigatoriamente precisa dar 100%%.\n\n");
-    printf("1 - Perfil conservador (menos risco)\n");
-    printf("2 - Perfil moderado (equilibrado)\n");
-    printf("3 - Perfil arrojado (mais oscilacao)\n");
-    printf("4 - Digitar percentuais manualmente\n");
-    printf("0 - Retornar ao menu principal\n\n");
+    printf("Agora vamos descobrir automaticamente seu perfil de investidor.\n");
+    printf("Responda ao questionario para receber uma sugestao de distribuicao.\n\n");
+    exibirAtalhoRetornoMenu();
 
-    opcao = lerInteiroFaixa("Escolha uma opcao: ", 0, 4);
+    ativarAtalhoRetornoMenu();
+    perfil = identificarPerfilQuestionario();
 
-    if (opcao == 0) {
+    if (perfil == 0) {
+        desativarAtalhoRetornoMenu();
         return;
     }
 
-    if (opcao >= 1 && opcao <= 3) {
-        definirPerfilAutomatico(carteira, opcao);
-    } else {
-        definirPesosManuais(carteira);
-    }
-
+    definirPerfilAutomatico(carteira, perfil);
+    desativarAtalhoRetornoMenu();
     carteira->preenchida = 1;
 
-    printf("\nPesos definidos com sucesso:\n");
-    for (opcao = 0; opcao < MAX_ATIVOS; opcao++) {
-        printf("- %-58s %.2f%%\n", carteira->nomes[opcao], carteira->pesos[opcao]);
+    printf("\nPerfil identificado: %s.\n", nomePerfilInvestidor(perfil));
+
+    if (perfil == 1) {
+        printf("Seu foco principal e seguranca e estabilidade.\n");
+    } else if (perfil == 2) {
+        printf("Voce aceita algum risco para buscar retorno maior com equilibrio.\n");
+    } else {
+        printf("Voce tolera mais oscilacao para buscar crescimento no longo prazo.\n");
+    }
+
+    printf("\nSugestao de distribuicao para seus investimentos:\n");
+    for (i = 0; i < MAX_ATIVOS; i++) {
+        printf("- %-58s %.2f%%\n", carteira->nomes[i], carteira->pesos[i]);
     }
 
     retornarMenuPrincipal();
+}
+
+int identificarPerfilQuestionario(void) {
+    int pontuacao = 0;
+    int resposta;
+
+    printf("Questionario rapido (5 perguntas):\n");
+    printf("Responda com 1, 2 ou 3 em cada pergunta.\n\n");
+
+    printf("1) Qual seu objetivo principal ao investir?\n");
+    printf("1 - Preservar meu dinheiro, com baixo risco\n");
+    printf("2 - Equilibrar seguranca e crescimento\n");
+    printf("3 - Buscar maior crescimento, aceitando oscilacoes\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    printf("\n2) Por quanto tempo voce pretende deixar o dinheiro investido?\n");
+    printf("1 - Menos de 2 anos\n");
+    printf("2 - Entre 2 e 5 anos\n");
+    printf("3 - Mais de 5 anos\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    printf("\n3) Se sua carteira cair 10%% em alguns meses, o que voce faria?\n");
+    printf("1 - Resgataria para evitar mais perdas\n");
+    printf("2 - Manteria e aguardaria recuperacao\n");
+    printf("3 - Aproveitaria para investir mais\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    printf("\n4) Qual seu nivel de experiencia com investimentos?\n");
+    printf("1 - Iniciante\n");
+    printf("2 - Intermediario\n");
+    printf("3 - Avancado\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    printf("\n5) Quanto de oscilacao voce aceita para buscar mais retorno?\n");
+    printf("1 - Quase nenhuma oscilacao\n");
+    printf("2 - Oscilacao moderada\n");
+    printf("3 - Oscilacao alta\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    if (pontuacao <= 8) {
+        return 1;
+    }
+
+    if (pontuacao <= 11) {
+        return 2;
+    }
+
+    return 3;
+}
+
+const char *nomePerfilInvestidor(int perfil) {
+    if (perfil == 1) {
+        return "Conservador";
+    }
+
+    if (perfil == 2) {
+        return "Moderado";
+    }
+
+    return "Arrojado";
 }
 
 void definirPerfilAutomatico(Carteira *carteira, int perfil) {
@@ -414,31 +603,6 @@ void definirPerfilAutomatico(Carteira *carteira, int perfil) {
     }
 }
 
-void definirPesosManuais(Carteira *carteira) {
-    double soma;
-    int i;
-
-    do {
-        limparTela();
-        printf("=========== PESOS MANUAIS DA CARTEIRA ===========\n");
-        printf("Digite os percentuais. A soma final deve ser 100%%.\n\n");
-
-        for (i = 0; i < MAX_ATIVOS; i++) {
-            char mensagem[130];
-            snprintf(mensagem, sizeof(mensagem), "Percentual para %s: ", carteira->nomes[i]);
-            carteira->pesos[i] = lerDoubleMinimo(mensagem, 0.0, 1);
-        }
-
-        soma = somarPesos(carteira);
-
-        if (valorAbsoluto(soma - 100.0) > 0.01) {
-            printf("\nEntrada invalida. A soma dos percentuais foi %.2f%%, mas precisa ser 100%%.\n", soma);
-            printf("Digite novamente todos os pesos.\n");
-            pausar();
-        }
-    } while (valorAbsoluto(soma - 100.0) > 0.01);
-}
-
 double somarPesos(const Carteira *carteira) {
     double soma = 0.0;
     int i;
@@ -452,6 +616,9 @@ double somarPesos(const Carteira *carteira) {
 
 void cadastrarCarteiraAtual(Carteira *carteira) {
     int i;
+    double valoresOriginais[MAX_ATIVOS];
+    double precosOriginais[MAX_ATIVOS];
+    double quantidadesOriginais[MAX_ATIVOS];
     double totalAtual = 0.0;
 
     limparTela();
@@ -470,18 +637,37 @@ void cadastrarCarteiraAtual(Carteira *carteira) {
     printf("- Tenho R$ 500 em Tesouro Selic: digite 500\n");
     printf("- Tenho R$ 120 em FIIs: digite 120\n");
     printf("- Ainda nao tenho esse investimento: digite 0\n\n");
+    exibirAtalhoRetornoMenu();
+
+    ativarAtalhoRetornoMenu();
+
+    for (i = 0; i < MAX_ATIVOS; i++) {
+        valoresOriginais[i] = carteira->valoresAtuais[i];
+        precosOriginais[i] = carteira->precos[i];
+        quantidadesOriginais[i] = carteira->quantidades[i];
+    }
 
     for (i = 0; i < MAX_ATIVOS; i++) {
         char mensagem[170];
 
         snprintf(mensagem, sizeof(mensagem), "Quanto voce ja tem em %s? R$ ", carteira->nomes[i]);
         carteira->valoresAtuais[i] = lerDoubleMinimo(mensagem, 0.0, 1);
+        if (consumirRetornoMenuSolicitado()) {
+            for (i = 0; i < MAX_ATIVOS; i++) {
+                carteira->valoresAtuais[i] = valoresOriginais[i];
+                carteira->precos[i] = precosOriginais[i];
+                carteira->quantidades[i] = quantidadesOriginais[i];
+            }
+            desativarAtalhoRetornoMenu();
+            return;
+        }
 
         carteira->precos[i] = carteira->valoresAtuais[i];
         carteira->quantidades[i] = carteira->valoresAtuais[i] > 0.0 ? 1.0 : 0.0;
         totalAtual += carteira->valoresAtuais[i];
     }
 
+    desativarAtalhoRetornoMenu();
     printf("\nCarteira atual cadastrada com sucesso.\n");
     printf("Total que voce ja possui investido: R$ %.2f\n", totalAtual);
 
