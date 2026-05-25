@@ -51,7 +51,6 @@ void desativarAtalhoRetornoMenu(void);
 int consumirRetornoMenuSolicitado(void);
 int linhaSolicitaRetornoMenu(const char *linha);
 void exibirAtalhoRetornoMenu(void);
-int confirmarContinuar(const char *textoContinuar);
 int menuPrincipal(void);
 int lerInteiroFaixa(const char *mensagem, int minimo, int maximo);
 double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual);
@@ -198,16 +197,25 @@ void exibirAtalhoRetornoMenu(void) {
 }
 
 void retornarMenuPrincipal(void) {
-    printf("\n0 - Retornar ao menu principal\n");
-    lerInteiroFaixa("Escolha uma opcao: ", 0, 0);
-}
+    char linha[TAM_LINHA];
 
-int confirmarContinuar(const char *textoContinuar) {
-    printf("Opcao selecionada: %s\n\n", textoContinuar);
-    printf("1 - Continuar nesta opcao\n");
-    printf("0 - Retornar ao menu principal\n\n");
+    printf("\nDigite MENU (ou VOLTAR) para retornar ao menu principal: ");
 
-    return lerInteiroFaixa("Escolha uma opcao: ", 0, 1);
+    while (1) {
+        if (fgets(linha, sizeof(linha), stdin) == NULL) {
+            printf("Entrada invalida. Tente novamente.\n");
+            clearerr(stdin);
+            printf("Digite MENU (ou VOLTAR) para retornar ao menu principal: ");
+            continue;
+        }
+
+        if (linhaSolicitaRetornoMenu(linha)) {
+            return;
+        }
+
+        printf("Entrada invalida. Digite MENU ou VOLTAR para retornar.\n");
+        printf("Digite MENU (ou VOLTAR) para retornar ao menu principal: ");
+    }
 }
 
 int menuPrincipal(void) {
@@ -394,13 +402,6 @@ void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][
 
     limparTela();
     printf("================ ORCAMENTO MENSAL ================\n");
-
-    if (confirmarContinuar("Informar nome, idade, renda mensal e plano ideal") == 0) {
-        return;
-    }
-
-    limparTela();
-    printf("================ ORCAMENTO MENSAL ================\n");
     printf("Informe seu nome, idade e renda. Use ponto para centavos.\n");
     printf("O plano sera calculado pela regra 50-30-20.\n");
     printf("Exemplo: 2500.50\n\n");
@@ -462,13 +463,6 @@ void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][
 void escolherPesos(Carteira *carteira) {
     int i;
     int perfil;
-
-    limparTela();
-    printf("=============== PESOS DA CARTEIRA ===============\n");
-
-    if (confirmarContinuar("Definir pesos percentuais da carteira") == 0) {
-        return;
-    }
 
     limparTela();
     printf("=============== PESOS DA CARTEIRA ===============\n");
@@ -623,13 +617,6 @@ void cadastrarCarteiraAtual(Carteira *carteira) {
 
     limparTela();
     printf("=============== CARTEIRA ATUAL ===============\n");
-
-    if (confirmarContinuar("Informar valores que ja tenho investidos") == 0) {
-        return;
-    }
-
-    limparTela();
-    printf("=============== CARTEIRA ATUAL ===============\n");
     printf("Nesta parte, informe quanto dinheiro voce JA TEM em cada tipo de investimento.\n");
     printf("Nao precisa saber preco de cota, quantidade ou termos de corretora.\n");
     printf("Digite apenas o valor total em reais.\n\n");
@@ -682,13 +669,6 @@ void cadastrarCarteiraAtual(Carteira *carteira) {
 
 void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]) {
     int i;
-
-    limparTela();
-    printf("===================== RESUMO GERAL =====================\n");
-
-    if (confirmarContinuar("Ver resumo e rebalanceamento") == 0) {
-        return;
-    }
 
     limparTela();
     printf("===================== RESUMO GERAL =====================\n");
@@ -791,13 +771,6 @@ void simularRebalanceamento(const Orcamento *orcamento, const Carteira *carteira
 }
 
 void exibirAjudaInvestimentos(void) {
-    limparTela();
-    printf("================ AJUDA PARA LEIGOS ================\n");
-
-    if (confirmarContinuar("Ver ajuda sobre tipos de investimento") == 0) {
-        return;
-    }
-
     limparTela();
     printf("================ AJUDA PARA LEIGOS ================\n");
     printf("Este programa nao substitui um profissional, mas ajuda a organizar ideias.\n\n");
