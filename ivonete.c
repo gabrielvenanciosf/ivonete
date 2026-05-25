@@ -1,6 +1,5 @@
 #include <ctype.h>
 #include <errno.h>
-#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +7,19 @@
 #define MAX_GASTOS 7
 #define MAX_ATIVOS 6
 #define TAM_LINHA 120
+#define PERCENTUAL_NECESSIDADES 50.0
+#define PERCENTUAL_LAZER_ESTILO 30.0
+#define PERCENTUAL_INVESTIMENTOS 20.0
+
+static const double PERCENTUAIS_GASTOS_IDEAIS[MAX_GASTOS] = {
+    25.0, /* Moradia - necessidades */
+    10.0, /* Alimentacao - necessidades */
+    5.0,  /* Transporte - necessidades */
+    5.0,  /* Saude - necessidades */
+    5.0,  /* Educacao - necessidades */
+    20.0, /* Lazer - lazer e estilo de vida */
+    10.0  /* Outros - lazer e estilo de vida */
+};
 
 typedef struct {
     char nome[80];
@@ -28,16 +40,16 @@ typedef struct {
     int preenchida;
 } Carteira;
 
-static jmp_buf retornoMenuContexto;
-static int atalhoMenuHabilitado = 0;
-
 void limparTela(void);
 void pausar(void);
+void retornarMenuPrincipal(void);
+int confirmarContinuar(const char *textoContinuar);
 int menuPrincipal(void);
 int lerInteiroFaixa(const char *mensagem, int minimo, int maximo);
 double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual);
 void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho);
 void inicializarCarteira(Carteira *carteira);
+void calcularOrcamentoIdeal(Orcamento *orcamento);
 void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][30]);
 void escolherPesos(Carteira *carteira);
 void definirPerfilAutomatico(Carteira *carteira, int perfil);
@@ -48,8 +60,6 @@ void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const ch
 void simularRebalanceamento(const Orcamento *orcamento, const Carteira *carteira);
 void exibirAjudaInvestimentos(void);
 double valorAbsoluto(double valor);
-int entradaSolicitaMenu(const char *linha);
-void exibirAtalhoMenu(void);
 
 int main(void) {
     const char categorias[MAX_GASTOS][30] = {
@@ -70,14 +80,6 @@ int main(void) {
 
     do {
         opcao = menuPrincipal();
-
-        if (opcao >= 1 && opcao <= 5) {
-            atalhoMenuHabilitado = 1;
-            if (setjmp(retornoMenuContexto) != 0) {
-                atalhoMenuHabilitado = 0;
-                continue;
-            }
-        }
 
         switch (opcao) {
             case 1:
@@ -104,8 +106,6 @@ int main(void) {
                 pausar();
                 break;
         }
-
-        atalhoMenuHabilitado = 0;
     } while (opcao != 0);
 
     return 0;
@@ -122,15 +122,21 @@ void limparTela(void) {
 void pausar(void) {
     char linha[TAM_LINHA];
 
-    if (atalhoMenuHabilitado) {
-        printf("\nPressione ENTER para continuar (ou digite MENU para voltar ao menu principal)...");
-    } else {
-        printf("\nPressione ENTER para continuar...");
-    }
+    printf("\nPressione ENTER para continuar...");
+    fgets(linha, sizeof(linha), stdin);
+}
 
-    if (fgets(linha, sizeof(linha), stdin) != NULL && atalhoMenuHabilitado && entradaSolicitaMenu(linha)) {
-        longjmp(retornoMenuContexto, 1);
-    }
+void retornarMenuPrincipal(void) {
+    printf("\n0 - Retornar ao menu principal\n");
+    lerInteiroFaixa("Escolha uma opcao: ", 0, 0);
+}
+
+int confirmarContinuar(const char *textoContinuar) {
+    printf("Opcao selecionada: %s\n\n", textoContinuar);
+    printf("1 - Continuar nesta opcao\n");
+    printf("0 - Retornar ao menu principal\n\n");
+
+    return lerInteiroFaixa("Escolha uma opcao: ", 0, 1);
 }
 
 int menuPrincipal(void) {
@@ -138,10 +144,10 @@ int menuPrincipal(void) {
     printf("============================================================\n");
     printf(" SIMULADOR DE CARTEIRA DE INVESTIMENTOS E REBALANCEAMENTO\n");
     printf("============================================================\n");
-    printf("1 - Informar ganho mensal e gastos\n");
+    printf("1 - Informar ganho mensal e ver plano ideal\n");
     printf("2 - Definir pesos percentuais da carteira\n");
     printf("3 - Informar valores que ja tenho investidos\n");
-    printf("4 - Ver resumo, sobra para investir e rebalanceamento\n");
+    printf("4 - Ver resumo, valor para investir e rebalanceamento\n");
     printf("5 - Ajuda para leigos: tipos de investimento\n");
     printf("0 - Sair\n");
     printf("============================================================\n");
@@ -161,10 +167,6 @@ int lerInteiroFaixa(const char *mensagem, int minimo, int maximo) {
             printf("Entrada invalida. Tente novamente.\n");
             clearerr(stdin);
             continue;
-        }
-
-        if (atalhoMenuHabilitado && entradaSolicitaMenu(linha)) {
-            longjmp(retornoMenuContexto, 1);
         }
 
         errno = 0;
@@ -203,10 +205,6 @@ double lerDoubleMinimo(const char *mensagem, double minimo, int permiteIgual) {
             continue;
         }
 
-        if (atalhoMenuHabilitado && entradaSolicitaMenu(linha)) {
-            longjmp(retornoMenuContexto, 1);
-        }
-
         errno = 0;
         valor = strtod(linha, &fim);
 
@@ -241,10 +239,6 @@ void lerTextoObrigatorio(const char *mensagem, char *destino, size_t tamanho) {
             printf("Entrada invalida. Tente novamente.\n");
             clearerr(stdin);
             continue;
-        }
-
-        if (atalhoMenuHabilitado && entradaSolicitaMenu(linha)) {
-            longjmp(retornoMenuContexto, 1);
         }
 
         linha[strcspn(linha, "\n")] = '\0';
@@ -296,44 +290,69 @@ void inicializarCarteira(Carteira *carteira) {
     carteira->preenchida = 0;
 }
 
+void calcularOrcamentoIdeal(Orcamento *orcamento) {
+    int i;
+
+    orcamento->totalGastos = 0.0;
+
+    for (i = 0; i < MAX_GASTOS; i++) {
+        orcamento->gastos[i] = orcamento->rendaMensal * PERCENTUAIS_GASTOS_IDEAIS[i] / 100.0;
+        orcamento->totalGastos += orcamento->gastos[i];
+    }
+
+    orcamento->sobraInvestir = orcamento->rendaMensal * PERCENTUAL_INVESTIMENTOS / 100.0;
+}
+
 void cadastrarOrcamento(Orcamento *orcamento, const char categorias[MAX_GASTOS][30]) {
     int i;
 
     limparTela();
     printf("================ ORCAMENTO MENSAL ================\n");
-    printf("Informe seu nome, idade, renda e gastos. Use ponto para centavos.\n");
+
+    if (confirmarContinuar("Informar nome, idade, renda mensal e plano ideal") == 0) {
+        return;
+    }
+
+    limparTela();
+    printf("================ ORCAMENTO MENSAL ================\n");
+    printf("Informe seu nome, idade e renda. Use ponto para centavos.\n");
+    printf("O plano sera calculado pela regra 50-30-20.\n");
     printf("Exemplo: 2500.50\n\n");
-    exibirAtalhoMenu();
-    printf("\n");
 
     lerTextoObrigatorio("Nome do usuario: ", orcamento->nome, sizeof(orcamento->nome));
     orcamento->idade = lerInteiroFaixa("Idade do usuario: ", 1, 120);
     orcamento->rendaMensal = lerDoubleMinimo("Ganho mensal total: R$ ", 0.0, 0);
-    orcamento->totalGastos = 0.0;
-
-    for (i = 0; i < MAX_GASTOS; i++) {
-        char mensagem[100];
-        snprintf(mensagem, sizeof(mensagem), "Gasto mensal com %s: R$ ", categorias[i]);
-        orcamento->gastos[i] = lerDoubleMinimo(mensagem, 0.0, 1);
-        orcamento->totalGastos += orcamento->gastos[i];
-    }
-
-    orcamento->sobraInvestir = orcamento->rendaMensal - orcamento->totalGastos;
+    calcularOrcamentoIdeal(orcamento);
     orcamento->preenchido = 1;
 
     printf("\nUsuario: %s, %d anos\n", orcamento->nome, orcamento->idade);
-    printf("\nTotal de gastos: R$ %.2f\n", orcamento->totalGastos);
+    printf("Renda mensal: R$ %.2f\n\n", orcamento->rendaMensal);
 
-    if (orcamento->sobraInvestir > 0.0) {
-        printf("Sobra mensal para investir: R$ %.2f\n", orcamento->sobraInvestir);
-    } else if (orcamento->sobraInvestir == 0.0) {
-        printf("Voce nao teve sobra este mes. Antes de investir, tente criar margem no orcamento.\n");
-    } else {
-        printf("Alerta: seus gastos passaram da renda em R$ %.2f.\n", valorAbsoluto(orcamento->sobraInvestir));
-        printf("Prioridade: reduzir despesas ou aumentar renda antes de investir.\n");
+    printf("Regra usada: %.0f%% necessidades, %.0f%% lazer/estilo de vida e %.0f%% investimentos.\n\n",
+           PERCENTUAL_NECESSIDADES,
+           PERCENTUAL_LAZER_ESTILO,
+           PERCENTUAL_INVESTIMENTOS);
+
+    printf("Plano ideal de uso da renda mensal:\n");
+    printf("%-15s %12s %15s\n", "Area", "% da renda", "Valor ideal");
+    printf("------------------------------------------------\n");
+
+    for (i = 0; i < MAX_GASTOS; i++) {
+        printf("%-15s %11.2f%% R$ %11.2f\n",
+               categorias[i],
+               PERCENTUAIS_GASTOS_IDEAIS[i],
+               orcamento->gastos[i]);
     }
 
-    pausar();
+    printf("%-15s %11.2f%% R$ %11.2f\n",
+           "Investimentos",
+           PERCENTUAL_INVESTIMENTOS,
+           orcamento->sobraInvestir);
+    printf("------------------------------------------------\n");
+    printf("Total ideal para gastos:       R$ %.2f\n", orcamento->totalGastos);
+    printf("Valor ideal para investimentos: R$ %.2f\n", orcamento->sobraInvestir);
+
+    retornarMenuPrincipal();
 }
 
 void escolherPesos(Carteira *carteira) {
@@ -341,15 +360,20 @@ void escolherPesos(Carteira *carteira) {
 
     limparTela();
     printf("=============== PESOS DA CARTEIRA ===============\n");
+
+    if (confirmarContinuar("Definir pesos percentuais da carteira") == 0) {
+        return;
+    }
+
+    limparTela();
+    printf("=============== PESOS DA CARTEIRA ===============\n");
     printf("Os pesos indicam quanto do dinheiro deve ir para cada investimento.\n");
     printf("A soma obrigatoriamente precisa dar 100%%.\n\n");
-    exibirAtalhoMenu();
-    printf("\n");
     printf("1 - Perfil conservador (menos risco)\n");
     printf("2 - Perfil moderado (equilibrado)\n");
     printf("3 - Perfil arrojado (mais oscilacao)\n");
     printf("4 - Digitar percentuais manualmente\n");
-    printf("0 - Voltar\n\n");
+    printf("0 - Retornar ao menu principal\n\n");
 
     opcao = lerInteiroFaixa("Escolha uma opcao: ", 0, 4);
 
@@ -370,7 +394,7 @@ void escolherPesos(Carteira *carteira) {
         printf("- %-58s %.2f%%\n", carteira->nomes[opcao], carteira->pesos[opcao]);
     }
 
-    pausar();
+    retornarMenuPrincipal();
 }
 
 void definirPerfilAutomatico(Carteira *carteira, int perfil) {
@@ -398,8 +422,6 @@ void definirPesosManuais(Carteira *carteira) {
         limparTela();
         printf("=========== PESOS MANUAIS DA CARTEIRA ===========\n");
         printf("Digite os percentuais. A soma final deve ser 100%%.\n\n");
-        exibirAtalhoMenu();
-        printf("\n");
 
         for (i = 0; i < MAX_ATIVOS; i++) {
             char mensagem[130];
@@ -434,11 +456,16 @@ void cadastrarCarteiraAtual(Carteira *carteira) {
 
     limparTela();
     printf("=============== CARTEIRA ATUAL ===============\n");
+
+    if (confirmarContinuar("Informar valores que ja tenho investidos") == 0) {
+        return;
+    }
+
+    limparTela();
+    printf("=============== CARTEIRA ATUAL ===============\n");
     printf("Nesta parte, informe quanto dinheiro voce JA TEM em cada tipo de investimento.\n");
     printf("Nao precisa saber preco de cota, quantidade ou termos de corretora.\n");
     printf("Digite apenas o valor total em reais.\n\n");
-    exibirAtalhoMenu();
-    printf("\n");
     printf("Exemplos:\n");
     printf("- Tenho R$ 500 em Tesouro Selic: digite 500\n");
     printf("- Tenho R$ 120 em FIIs: digite 120\n");
@@ -459,12 +486,12 @@ void cadastrarCarteiraAtual(Carteira *carteira) {
     printf("Total que voce ja possui investido: R$ %.2f\n", totalAtual);
 
     if (totalAtual == 0.0) {
-        printf("Tudo bem se voce ainda nao tem investimentos. O simulador vai usar sua sobra mensal para sugerir os primeiros aportes.\n");
+        printf("Tudo bem se voce ainda nao tem investimentos. O simulador vai usar o valor mensal ideal para sugerir os primeiros aportes.\n");
     } else {
         printf("Esses valores serao comparados com os percentuais da opcao 2 para mostrar o rebalanceamento.\n");
     }
 
-    pausar();
+    retornarMenuPrincipal();
 }
 
 void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]) {
@@ -472,56 +499,65 @@ void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const ch
 
     limparTela();
     printf("===================== RESUMO GERAL =====================\n");
-    exibirAtalhoMenu();
-    printf("\n");
+
+    if (confirmarContinuar("Ver resumo e rebalanceamento") == 0) {
+        return;
+    }
+
+    limparTela();
+    printf("===================== RESUMO GERAL =====================\n");
 
     if (!orcamento->preenchido) {
         printf("Orcamento ainda nao cadastrado. Use a opcao 1 primeiro.\n");
-        pausar();
+        retornarMenuPrincipal();
         return;
     }
 
     printf("Usuario: %s\n", orcamento->nome);
     printf("Idade:          %d anos\n", orcamento->idade);
     printf("Renda mensal:       R$ %.2f\n", orcamento->rendaMensal);
-    printf("Total de gastos:    R$ %.2f\n", orcamento->totalGastos);
-    printf("Sobra para investir:");
+    printf("Total ideal para gastos: R$ %.2f\n", orcamento->totalGastos);
+    printf("Valor ideal para investir:");
 
     if (orcamento->sobraInvestir > 0.0) {
-        printf(" R$ %.2f\n\n", orcamento->sobraInvestir);
+        printf(" R$ %.2f (%.2f%% da renda)\n\n", orcamento->sobraInvestir, PERCENTUAL_INVESTIMENTOS);
     } else {
         printf(" R$ %.2f\n\n", orcamento->sobraInvestir);
-        printf("Como nao houve sobra positiva, o ideal e ajustar o orcamento antes de investir.\n\n");
+        printf("Como nao houve valor positivo para investir, revise os percentuais do orcamento.\n\n");
     }
 
-    printf("Gastos por area:\n");
+    printf("Regra usada: %.0f%% necessidades, %.0f%% lazer/estilo de vida e %.0f%% investimentos.\n\n",
+           PERCENTUAL_NECESSIDADES,
+           PERCENTUAL_LAZER_ESTILO,
+           PERCENTUAL_INVESTIMENTOS);
+
+    printf("Plano ideal de gastos por area:\n");
     for (i = 0; i < MAX_GASTOS; i++) {
-        double percentual = 0.0;
-        if (orcamento->rendaMensal > 0.0) {
-            percentual = (orcamento->gastos[i] / orcamento->rendaMensal) * 100.0;
-        }
-        printf("- %-12s R$ %10.2f (%6.2f%% da renda)\n", categorias[i], orcamento->gastos[i], percentual);
+        printf("- %-12s R$ %10.2f (%6.2f%% da renda)\n",
+               categorias[i],
+               orcamento->gastos[i],
+               PERCENTUAIS_GASTOS_IDEAIS[i]);
     }
 
     if (orcamento->sobraInvestir <= 0.0) {
-        pausar();
+        retornarMenuPrincipal();
         return;
     }
 
     if (!carteira->preenchida || valorAbsoluto(somarPesos(carteira) - 100.0) > 0.01) {
         printf("\nPesos da carteira ainda nao cadastrados. Use a opcao 2.\n");
-        pausar();
+        retornarMenuPrincipal();
         return;
     }
 
-    printf("\nSugestao simples para investir a sobra mensal:\n");
+    printf("\nSugestao simples para investir o valor mensal ideal:\n");
     for (i = 0; i < MAX_ATIVOS; i++) {
         double aporte = orcamento->sobraInvestir * carteira->pesos[i] / 100.0;
         printf("- %-58s R$ %10.2f (%5.2f%%)\n", carteira->nomes[i], aporte, carteira->pesos[i]);
     }
 
     simularRebalanceamento(orcamento, carteira);
-    pausar();
+    retornarMenuPrincipal();
 }
 
 void simularRebalanceamento(const Orcamento *orcamento, const Carteira *carteira) {
@@ -571,9 +607,14 @@ void simularRebalanceamento(const Orcamento *orcamento, const Carteira *carteira
 void exibirAjudaInvestimentos(void) {
     limparTela();
     printf("================ AJUDA PARA LEIGOS ================\n");
+
+    if (confirmarContinuar("Ver ajuda sobre tipos de investimento") == 0) {
+        return;
+    }
+
+    limparTela();
+    printf("================ AJUDA PARA LEIGOS ================\n");
     printf("Este programa nao substitui um profissional, mas ajuda a organizar ideias.\n\n");
-    exibirAtalhoMenu();
-    printf("\n");
 
     printf("1. Reserva de emergencia\n");
     printf("   Primeiro passo. Deve ficar em algo seguro e com liquidez diaria.\n");
@@ -603,7 +644,7 @@ void exibirAjudaInvestimentos(void) {
     printf("- Rebalanceie quando um investimento ficar muito acima ou abaixo da meta.\n");
     printf("- Desconfie de promessa de ganho rapido e garantido.\n");
 
-    pausar();
+    retornarMenuPrincipal();
 }
 
 double valorAbsoluto(double valor) {
@@ -612,31 +653,4 @@ double valorAbsoluto(double valor) {
     }
 
     return valor;
-}
-
-int entradaSolicitaMenu(const char *linha) {
-    char texto[TAM_LINHA];
-    size_t i = 0;
-    size_t j = 0;
-
-    while (linha[i] != '\0' && isspace((unsigned char)linha[i])) {
-        i++;
-    }
-
-    while (linha[i] != '\0' && linha[i] != '\n' && j < TAM_LINHA - 1) {
-        texto[j] = (char)tolower((unsigned char)linha[i]);
-        i++;
-        j++;
-    }
-
-    while (j > 0 && isspace((unsigned char)texto[j - 1])) {
-        j--;
-    }
-    texto[j] = '\0';
-
-    return strcmp(texto, "menu") == 0 || strcmp(texto, "m") == 0 || strcmp(texto, "voltar") == 0;
-}
-
-void exibirAtalhoMenu(void) {
-    printf("Atalho: digite MENU e pressione ENTER para retornar ao menu principal.");
 }
