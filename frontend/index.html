@@ -25,7 +25,7 @@
         <div class="menu-line"></div>
         <ul class="menu-options">
           <li>1 - Informar ganho mensal e ver plano ideal</li>
-          <li>2 - Definir pesos percentuais da carteira</li>
+          <li>2 - Definir perfil de investidor</li>
           <li>3 - Informar valores que ja tenho investidos</li>
           <li>4 - Ver resumo, valor para investir e rebalanceamento</li>
           <li>5 - Ajuda para leigos: tipos de investimento</li>
@@ -46,11 +46,15 @@
 
       <div class="grid-layout">
         <section class="card">
-          <h2>1) Ganho Mensal e Plano Ideal</h2>
+          <h2>1) Informar ganho mensal e ver plano ideal</h2>
           <form id="planner-form" class="stack">
             <label>
               Nome do investidor
               <input type="text" id="investor-name" required maxlength="80" placeholder="Ex: Maria Silva" />
+            </label>
+            <label>
+              Idade
+              <input type="number" id="investor-age" min="1" max="120" required placeholder="Ex: 32" />
             </label>
             <label>
               Ganho mensal (R$)
@@ -62,18 +66,46 @@
         </section>
 
         <section class="card">
-          <h2>2) Definir Pesos da Carteira (%)</h2>
-          <form id="weights-form" class="stack">
-            <div class="two-columns">
-              <label>Renda fixa (%)<input type="number" name="rendaFixa" min="0" max="100" step="0.1" required /></label>
-              <label>Acoes (%)<input type="number" name="acoes" min="0" max="100" step="0.1" required /></label>
-              <label>FIIs (%)<input type="number" name="fiis" min="0" max="100" step="0.1" required /></label>
-              <label>Exterior (%)<input type="number" name="exterior" min="0" max="100" step="0.1" required /></label>
-              <label>Reserva (%)<input type="number" name="reserva" min="0" max="100" step="0.1" required /></label>
-            </div>
-            <button type="submit" class="btn btn-primary">Aplicar pesos</button>
+          <h2>2) Definir Perfil de Investidor</h2>
+          <form id="profile-form" class="stack">
+            <fieldset class="profile-question">
+              <legend>1) Qual seu objetivo principal ao investir?</legend>
+              <label class="choice"><input type="radio" name="q1" value="1" required /> 1 - Preservar meu dinheiro, com baixo risco</label>
+              <label class="choice"><input type="radio" name="q1" value="2" /> 2 - Equilibrar seguranca e crescimento</label>
+              <label class="choice"><input type="radio" name="q1" value="3" /> 3 - Buscar maior crescimento, aceitando oscilacoes</label>
+            </fieldset>
+
+            <fieldset class="profile-question">
+              <legend>2) Por quanto tempo voce pretende deixar o dinheiro investido?</legend>
+              <label class="choice"><input type="radio" name="q2" value="1" required /> 1 - Menos de 2 anos</label>
+              <label class="choice"><input type="radio" name="q2" value="2" /> 2 - Entre 2 e 5 anos</label>
+              <label class="choice"><input type="radio" name="q2" value="3" /> 3 - Mais de 5 anos</label>
+            </fieldset>
+
+            <fieldset class="profile-question">
+              <legend>3) Como voce reage quando seus investimentos caem?</legend>
+              <label class="choice"><input type="radio" name="q3" value="1" required /> 1 - Fico desconfortavel e prefiro reduzir risco</label>
+              <label class="choice"><input type="radio" name="q3" value="2" /> 2 - Aguardo e acompanho antes de decidir</label>
+              <label class="choice"><input type="radio" name="q3" value="3" /> 3 - Vejo como oportunidade para crescer no longo prazo</label>
+            </fieldset>
+
+            <fieldset class="profile-question">
+              <legend>4) Qual retorno voce espera dos investimentos?</legend>
+              <label class="choice"><input type="radio" name="q4" value="1" required /> 1 - Retorno menor, com mais previsibilidade</label>
+              <label class="choice"><input type="radio" name="q4" value="2" /> 2 - Retorno medio com risco controlado</label>
+              <label class="choice"><input type="radio" name="q4" value="3" /> 3 - Retorno mais alto, aceitando variacoes</label>
+            </fieldset>
+
+            <fieldset class="profile-question">
+              <legend>5) Qual seu conhecimento sobre investimentos?</legend>
+              <label class="choice"><input type="radio" name="q5" value="1" required /> 1 - Iniciante</label>
+              <label class="choice"><input type="radio" name="q5" value="2" /> 2 - Intermediario</label>
+              <label class="choice"><input type="radio" name="q5" value="3" /> 3 - Avancado</label>
+            </fieldset>
+
+            <button type="submit" class="btn btn-primary">Calcular perfil</button>
           </form>
-          <p id="weights-total" class="hint"></p>
+          <div id="profile-result" class="result-box"></div>
         </section>
 
         <section class="card">

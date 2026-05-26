@@ -1,5 +1,3 @@
-import { CATEGORIES } from "./state.js";
-
 const moneyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
   currency: "BRL"
@@ -20,10 +18,11 @@ export function getElements() {
     refreshUsersButton: document.getElementById("refresh-users"),
     plannerForm: document.getElementById("planner-form"),
     investorName: document.getElementById("investor-name"),
+    investorAge: document.getElementById("investor-age"),
     monthlyIncome: document.getElementById("monthly-income"),
     idealPlan: document.getElementById("ideal-plan"),
-    weightsForm: document.getElementById("weights-form"),
-    weightsTotal: document.getElementById("weights-total"),
+    profileForm: document.getElementById("profile-form"),
+    profileResult: document.getElementById("profile-result"),
     currentForm: document.getElementById("current-form"),
     summary: document.getElementById("summary"),
     rebalanceButton: document.getElementById("rebalance-btn")
@@ -68,36 +67,70 @@ export function renderUsers(container, users, onDelete) {
   container.appendChild(list);
 }
 
-export function renderIdealPlan(element, plan, monthlyIncome) {
+export function renderIdealPlan(element, plan, monthlyIncome, investor) {
   if (!plan) {
     element.innerHTML = "<p class='hint'>Informe o ganho mensal para gerar o plano.</p>";
     return;
   }
 
-  const weightLines = CATEGORIES.map(
-    (category) =>
-      `<li>${category.label}: <strong>${percentFormatter.format(plan.suggestedWeights[category.key])}%</strong></li>`
-  ).join("");
+  const rows = plan.rows
+    .map(
+      (row) => `
+        <tr>
+          <td>${row.area}</td>
+          <td>${percentFormatter.format(row.percent)}%</td>
+          <td>${moneyFormatter.format(row.idealValue)}</td>
+        </tr>
+      `
+    )
+    .join("");
 
   element.innerHTML = `
-    <p><strong>Perfil sugerido:</strong> ${plan.profile}</p>
-    <p><strong>Aporte mensal recomendado:</strong> ${moneyFormatter.format(plan.monthlyContribution)} (${percentFormatter.format(
-      plan.investRate * 100
-    )}% de ${moneyFormatter.format(monthlyIncome)})</p>
-    <p><strong>Pesos sugeridos:</strong></p>
-    <ul>${weightLines}</ul>
+    <p><strong>Investidor:</strong> ${investor.name} | <strong>Idade:</strong> ${investor.age} anos</p>
+    <p><strong>Renda mensal considerada:</strong> ${moneyFormatter.format(monthlyIncome)}</p>
+    <p><strong>Regra usada:</strong> ${plan.needsPercent}% necessidades, ${plan.lifestylePercent}% lazer/estilo de vida e ${plan.investmentsPercent}% investimentos.</p>
+    <p><strong>Plano ideal de uso da renda mensal:</strong></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Area</th>
+          <th>% da renda</th>
+          <th>Valor ideal</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p><strong>Total ideal para gastos:</strong> ${moneyFormatter.format(plan.totalExpenses)}</p>
+    <p><strong>Valor ideal para investimentos:</strong> ${moneyFormatter.format(plan.investmentsValue)}</p>
   `;
 }
 
-export function renderWeightsHint(element, total) {
-  const diff = Math.abs(total - 100);
-  if (diff < 0.0001) {
-    element.textContent = "Pesos validos: soma exata de 100%.";
-    element.style.color = "#22c55e";
-  } else {
-    element.textContent = `A soma atual e ${percentFormatter.format(total)}%. Ajuste para fechar em 100%.`;
-    element.style.color = "#fca5a5";
+export function renderProfileResult(element, profile) {
+  if (!profile) {
+    element.innerHTML = "<p class='hint'>Responda o questionario para descobrir seu perfil.</p>";
+    return;
   }
+
+  element.innerHTML = `
+    <p><strong>Perfil identificado:</strong> ${profile.label}</p>
+    <p><strong>Pontuacao:</strong> ${profile.score} (faixa ${profile.minScore} a ${profile.maxScore})</p>
+    <p><strong>Pesos recomendados para rebalanceamento:</strong></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Classe</th>
+          <th>Peso</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>Renda fixa</td><td>${percentFormatter.format(profile.weights.rendaFixa)}%</td></tr>
+        <tr><td>Acoes</td><td>${percentFormatter.format(profile.weights.acoes)}%</td></tr>
+        <tr><td>FIIs</td><td>${percentFormatter.format(profile.weights.fiis)}%</td></tr>
+        <tr><td>Exterior</td><td>${percentFormatter.format(profile.weights.exterior)}%</td></tr>
+        <tr><td>Reserva</td><td>${percentFormatter.format(profile.weights.reserva)}%</td></tr>
+      </tbody>
+    </table>
+  `;
 }
 
 export function renderSummary(element, result) {

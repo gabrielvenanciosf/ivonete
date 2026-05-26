@@ -14,8 +14,31 @@ export const defaultWeights = {
   reserva: 10
 };
 
+export const profileWeights = {
+  conservador: {
+    rendaFixa: 65,
+    acoes: 10,
+    fiis: 10,
+    exterior: 5,
+    reserva: 10
+  },
+  moderado: { ...defaultWeights },
+  arrojado: {
+    rendaFixa: 25,
+    acoes: 40,
+    fiis: 15,
+    exterior: 15,
+    reserva: 5
+  }
+};
+
 export const state = {
   users: [],
+  investor: {
+    name: "",
+    age: 0
+  },
+  investorProfile: null,
   monthlyIncome: 0,
   idealPlan: null,
   weights: { ...defaultWeights },
@@ -52,45 +75,71 @@ export function getWeightsTotal(weights) {
   return sumObjectValues(weights);
 }
 
-export function getSuggestedPlan(monthlyIncome) {
-  const income = normalizeNumber(monthlyIncome);
-  let profile = "Conservador";
-  let investRate = 0.15;
-  let suggestedWeights = {
-    rendaFixa: 55,
-    acoes: 15,
-    fiis: 15,
-    exterior: 5,
-    reserva: 10
-  };
+export function evaluateInvestorProfile(answers) {
+  const normalizedAnswers = answers.map((value) => {
+    const number = Number(value);
+    if (!Number.isFinite(number)) {
+      return 0;
+    }
+    return Math.max(1, Math.min(3, Math.round(number)));
+  });
 
-  if (income >= 4000 && income < 10000) {
-    profile = "Moderado";
-    investRate = 0.2;
-    suggestedWeights = {
-      rendaFixa: 40,
-      acoes: 25,
-      fiis: 15,
-      exterior: 10,
-      reserva: 10
-    };
-  } else if (income >= 10000) {
-    profile = "Arrojado";
-    investRate = 0.25;
-    suggestedWeights = {
-      rendaFixa: 30,
-      acoes: 35,
-      fiis: 15,
-      exterior: 15,
-      reserva: 5
-    };
+  const score = normalizedAnswers.reduce((acc, value) => acc + value, 0);
+  let key = "moderado";
+  let label = "Moderado";
+
+  if (score <= 8) {
+    key = "conservador";
+    label = "Conservador";
+  } else if (score >= 12) {
+    key = "arrojado";
+    label = "Arrojado";
   }
 
   return {
-    profile,
-    investRate,
-    monthlyContribution: income * investRate,
-    suggestedWeights
+    key,
+    label,
+    score,
+    minScore: 5,
+    maxScore: 15,
+    answers: normalizedAnswers,
+    weights: { ...profileWeights[key] }
+  };
+}
+
+export function getSuggestedPlan(monthlyIncome) {
+  const income = normalizeNumber(monthlyIncome);
+  const distribution = [
+    { area: "Moradia", percent: 25 },
+    { area: "Alimentacao", percent: 10 },
+    { area: "Transporte", percent: 5 },
+    { area: "Saude", percent: 5 },
+    { area: "Educacao", percent: 5 },
+    { area: "Lazer", percent: 20 },
+    { area: "Outros", percent: 10 },
+    { area: "Investimentos", percent: 20 }
+  ];
+
+  const rows = distribution.map((item) => ({
+    ...item,
+    idealValue: income * (item.percent / 100)
+  }));
+
+  const totalExpenses = rows
+    .filter((row) => row.area !== "Investimentos")
+    .reduce((acc, row) => acc + row.idealValue, 0);
+
+  const investmentRow = rows.find((row) => row.area === "Investimentos");
+  const investmentsValue = investmentRow ? investmentRow.idealValue : 0;
+
+  return {
+    monthlyContribution: investmentsValue,
+    needsPercent: 50,
+    lifestylePercent: 30,
+    investmentsPercent: 20,
+    rows,
+    totalExpenses,
+    investmentsValue
   };
 }
 

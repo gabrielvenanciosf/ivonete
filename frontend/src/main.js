@@ -2,10 +2,10 @@ import { API_BASE_URL } from "./config.js";
 import { ApiClient } from "./api.js";
 import {
   state,
-  defaultWeights,
   parseAllocationForm,
   getWeightsTotal,
   getSuggestedPlan,
+  evaluateInvestorProfile,
   calculateRebalance,
   normalizeNumber
 } from "./state.js";
@@ -15,21 +15,12 @@ import {
   setFeedback,
   renderUsers,
   renderIdealPlan,
-  renderWeightsHint,
+  renderProfileResult,
   renderSummary
 } from "./ui.js";
 
 const api = new ApiClient(API_BASE_URL);
 const elements = getElements();
-
-function applyWeightsOnForm(weights) {
-  Object.entries(weights).forEach(([key, value]) => {
-    const input = elements.weightsForm.elements.namedItem(key);
-    if (input) {
-      input.value = String(value);
-    }
-  });
-}
 
 function applyCurrentOnForm(values) {
   Object.entries(values).forEach(([key, value]) => {
@@ -91,10 +82,16 @@ async function handleDeleteUser(id) {
 function handlePlannerSubmit(event) {
   event.preventDefault();
   const name = elements.investorName.value.trim();
+  const age = normalizeNumber(elements.investorAge.value);
   const income = normalizeNumber(elements.monthlyIncome.value);
 
   if (!name) {
     setFeedback(elements.feedback, "Informe o nome do investidor.", "error");
+    return;
+  }
+
+  if (!age || age < 1) {
+    setFeedback(elements.feedback, "Informe uma idade valida.", "error");
     return;
   }
 
@@ -103,31 +100,39 @@ function handlePlannerSubmit(event) {
     return;
   }
 
+  state.investor = { name, age };
   state.monthlyIncome = income;
   state.idealPlan = getSuggestedPlan(income);
-  renderIdealPlan(elements.idealPlan, state.idealPlan, income);
+  renderIdealPlan(elements.idealPlan, state.idealPlan, income, state.investor);
 
   setFeedback(
     elements.feedback,
-    `Plano sugerido para ${name}. Se quiser, ajuste os pesos no passo 2.`,
+    `Plano ideal gerado para ${name}.`,
     "success"
   );
 }
 
-function handleWeightsSubmit(event) {
+function handleProfileSubmit(event) {
   event.preventDefault();
-  const parsed = parseAllocationForm(elements.weightsForm);
-  const total = getWeightsTotal(parsed);
+  const data = new FormData(elements.profileForm);
+  const answers = [
+    Number(data.get("q1")),
+    Number(data.get("q2")),
+    Number(data.get("q3")),
+    Number(data.get("q4")),
+    Number(data.get("q5"))
+  ];
 
-  state.weights = parsed;
-  renderWeightsHint(elements.weightsTotal, total);
-
-  if (Math.abs(total - 100) > 0.0001) {
-    setFeedback(elements.feedback, "A soma dos pesos precisa ser 100% para rebalancear corretamente.", "error");
+  if (answers.some((value) => !Number.isFinite(value))) {
+    setFeedback(elements.feedback, "Responda as 5 perguntas do perfil antes de continuar.", "error");
     return;
   }
 
-  setFeedback(elements.feedback, "Pesos da carteira atualizados.", "success");
+  const profile = evaluateInvestorProfile(answers);
+  state.investorProfile = profile;
+  state.weights = { ...profile.weights };
+  renderProfileResult(elements.profileResult, state.investorProfile);
+  setFeedback(elements.feedback, `Perfil ${profile.label} definido. Pesos atualizados automaticamente.`, "success");
 }
 
 function handleCurrentSubmit(event) {
@@ -152,17 +157,16 @@ function handleRebalance() {
 function bootstrap() {
   setApiBaseUrl(elements.apiBaseUrl, API_BASE_URL);
 
-  applyWeightsOnForm(defaultWeights);
   applyCurrentOnForm(state.currentInvestments);
 
-  renderIdealPlan(elements.idealPlan, null, 0);
-  renderWeightsHint(elements.weightsTotal, getWeightsTotal(defaultWeights));
+  renderIdealPlan(elements.idealPlan, null, 0, state.investor);
+  renderProfileResult(elements.profileResult, state.investorProfile);
   renderSummary(elements.summary, null);
 
   elements.userForm.addEventListener("submit", handleCreateUser);
   elements.refreshUsersButton.addEventListener("click", loadUsers);
   elements.plannerForm.addEventListener("submit", handlePlannerSubmit);
-  elements.weightsForm.addEventListener("submit", handleWeightsSubmit);
+  elements.profileForm.addEventListener("submit", handleProfileSubmit);
   elements.currentForm.addEventListener("submit", handleCurrentSubmit);
   elements.rebalanceButton.addEventListener("click", handleRebalance);
 

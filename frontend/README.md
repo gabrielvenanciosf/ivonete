@@ -53,8 +53,8 @@ python -m http.server 5500
 ## O que foi implementado
 
 - Menu visual no formato solicitado (itens 1 a 5)
-- Passo 1: ganho mensal e plano ideal sugerido
-- Passo 2: definicao de pesos da carteira com validacao de soma igual a 100%
+- Passo 1: nome, idade e ganho mensal com plano ideal pela regra 50/30/20
+- Passo 2: questionario de 5 perguntas para definir perfil de investidor (conservador, moderado ou arrojado)
 - Passo 3: entrada de valores ja investidos
 - Passo 4: resumo com calculo de rebalanceamento e valor a investir por classe
 - Passo 5: ajuda para leigos por tipo de investimento
