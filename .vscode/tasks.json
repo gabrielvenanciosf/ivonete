@@ -1,0 +1,44 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build ivonete",
+      "type": "shell",
+      "command": "& \"$env:SystemRoot\\System32\\chcp.com\" 65001 > $null; New-Item -ItemType Directory -Force \"C:\\ivonete\\output\" | Out-Null; & gcc -Wall -Wextra -g3 \"C:\\ivonete\\ivonete.c\" -o \"C:\\ivonete\\output\\ivonete.exe\"",
+      "options": {
+        "shell": {
+          "executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command"
+          ]
+        }
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        "$gcc"
+      ]
+    },
+    {
+      "label": "Run ivonete",
+      "type": "shell",
+      "command": "& \"C:\\ivonete\\output\\ivonete.exe\"",
+      "options": {
+        "shell": {
+          "executable": "C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
+          "args": [
+            "-NoProfile",
+            "-NonInteractive",
+            "-Command"
+          ]
+        }
+      },
+      "dependsOn": "Build ivonete",
+      "problemMatcher": []
+    }
+  ]
+}

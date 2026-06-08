@@ -158,14 +158,18 @@ const MetodoOrcamento *obterMetodoOrcamento(int indice);
 void exibirPlanoOrcamento(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]);
 double calcularAporteDisponivelInvestimento(const Orcamento *orcamento);
 void cadastrarOrcamento(Orcamento *orcamento);
+void cadastrarOrcamentoColorido(Orcamento *orcamento);
 void escolherPesos(Carteira *carteira, Orcamento *orcamento, const char categorias[MAX_GASTOS][30]);
+void escolherPesosColorido(Carteira *carteira, Orcamento *orcamento, const char categorias[MAX_GASTOS][30]);
 const char *nomePerfilInvestidor(int perfil);
 void definirPerfilAutomatico(Carteira *carteira, int perfil);
 double somarPesos(const Carteira *carteira);
 void cadastrarCarteiraAtual(Carteira *carteira);
+void cadastrarCarteiraAtualColorida(Carteira *carteira);
 void exibirResumo(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]);
 void simularRebalanceamento(const Orcamento *orcamento, const Carteira *carteira);
 void exibirAjudaInvestimentos(void);
+void exibirAjudaInvestimentosColorida(void);
 double valorAbsoluto(double valor);
 
 #ifdef _WIN32
@@ -597,19 +601,19 @@ int main(void) {
 
         switch (opcao) {
             case 1:
-                cadastrarOrcamento(&orcamento);
+                cadastrarOrcamentoColorido(&orcamento);
                 break;
             case 2:
-                escolherPesos(&carteira, &orcamento, categorias);
+                escolherPesosColorido(&carteira, &orcamento, categorias);
                 break;
             case 3:
-                cadastrarCarteiraAtual(&carteira);
+                cadastrarCarteiraAtualColorida(&carteira);
                 break;
             case 4:
                 exibirResumo(&orcamento, &carteira, categorias);
                 break;
             case 5:
-                exibirAjudaInvestimentos();
+                exibirAjudaInvestimentosColorida();
                 break;
             case 0:
                 limparTela();
@@ -1262,6 +1266,7 @@ void exibirPlanoOrcamento(const Orcamento *orcamento, const Carteira *carteira, 
  */
 void cadastrarOrcamento(Orcamento *orcamento) {
     Orcamento temporario = *orcamento;
+    double totalAtual = 0.0;
     int i;
 
     limparTela();
@@ -1270,6 +1275,46 @@ void cadastrarOrcamento(Orcamento *orcamento) {
     printf("O questionário completo será feito na opção 2.\n");
     printf("Use ponto para separar os centavos.\n");
     printf("Exemplo: 2500.50\n\n");
+    limparTela();
+    printf("%s============ DADOS FINANCEIROS DO USUÁRIO ============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta opção, vamos apenas cadastrar seus dados.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sO questionário completo será feito na opção 2.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%sUse ponto para separar os centavos.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sExemplo: 2500.50%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    limparTela();
+    printf("%s=============== CARTEIRA ATUAL ===============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta etapa, informe quanto dinheiro você já tem em cada tipo de investimento.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sNão é necessário saber preço de cota, quantidade ou termos de corretora.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sDigite apenas o valor total em reais.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%sExemplos:%s\n", corTerminal(COR_SECAO), corTerminal(COR_RESET));
+    printf("%s- Tenho R$ 500 em Tesouro Selic: digite 500%s\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Tenho R$ 120 em FIIs: digite 120%s\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Ainda não tenho esse investimento: digite 0%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    exibirAtalhoRetornoMenu();
+
+    limparTela();
+    printf("%s============ DADOS FINANCEIROS DO USUÁRIO ============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta opção, vamos apenas cadastrar seus dados.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sO questionário completo será feito na opção 2.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%sUse ponto para separar os centavos.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sExemplo: 2500.50%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
     exibirAtalhoRetornoMenu();
 
     ativarAtalhoRetornoMenu();
@@ -1313,6 +1358,23 @@ void cadastrarOrcamento(Orcamento *orcamento) {
     printf("\nDados cadastrados com sucesso.\n");
     printf("Agora use a opção 2 para responder o questionário completo e definir seu perfil de investidor.\n");
 
+    limparTela();
+    printf("%sDados cadastrados com sucesso.%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%sAgora use a opção 2 para responder o questionário completo e definir seu perfil de investidor.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    retornarMenuPrincipal();
+    return;
+    limparTela();
+    printf("%sCarteira atual cadastrada com sucesso.%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%sTotal que você já possui investido: R$ %.2f%s\n",
+           corTerminal(COR_INFO), totalAtual, corTerminal(COR_RESET));
+    if (totalAtual == 0.0) {
+        printf("%sTudo bem se você ainda não tem investimentos. O simulador usará seu aporte mensal e o dinheiro guardado disponível para sugerir os primeiros aportes.%s\n",
+               corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    } else {
+        printf("%sEsses valores serão comparados com os percentuais da opção 2 para mostrar o rebalanceamento.%s\n",
+               corTerminal(COR_INFO), corTerminal(COR_RESET));
+    }
     retornarMenuPrincipal();
 }
 
@@ -1440,6 +1502,17 @@ void escolherPesos(Carteira *carteira, Orcamento *orcamento, const char categori
     printf("- sugerir um método de orçamento;\n");
     printf("- definir seu perfil de investidor;\n");
     printf("- calcular os pesos percentuais da carteira.\n\n");
+    limparTela();
+    printf("%s=============== QUESTIONÁRIO E PERFIL ===============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta opção, o sistema fará um questionário completo para:%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s- sugerir um método de orçamento;%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%s- definir seu perfil de investidor;%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%s- calcular os pesos percentuais da carteira.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
     exibirAtalhoRetornoMenu();
 
     ativarAtalhoRetornoMenu();
@@ -1468,6 +1541,7 @@ void escolherPesos(Carteira *carteira, Orcamento *orcamento, const char categori
     printf("Perfil identificado: %s\n", nomePerfilInvestidor(perfil));
     printf("Método selecionado: %s\n", METODOS_ORCAMENTO[metodoEscolhido].nome);
 
+    limparTela();
     exibirPlanoOrcamento(orcamento, carteira, categorias);
     retornarMenuPrincipal();
 }
@@ -1851,6 +1925,241 @@ void exibirAjudaInvestimentos(void) {
     printf("- Invista todo mês, mesmo que seja pouco.\n");
     printf("- Rebalanceie quando um investimento ficar muito acima ou abaixo da meta.\n");
     printf("- Desconfie de promessas de ganho rápido e garantido.\n");
+
+    retornarMenuPrincipal();
+}
+
+void cadastrarOrcamentoColorido(Orcamento *orcamento) {
+    Orcamento temporario = *orcamento;
+    int i;
+
+    limparTela();
+    printf("%s============ DADOS FINANCEIROS DO USUÁRIO ============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta opção, vamos apenas cadastrar seus dados.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sO questionário completo será feito na opção 2.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%sUse ponto para separar os centavos.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sExemplo: 2500.50%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    exibirAtalhoRetornoMenu();
+
+    ativarAtalhoRetornoMenu();
+
+    if (!lerTextoObrigatorio("Nome do usuário: ", temporario.nome, sizeof(temporario.nome))) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    temporario.idade = lerInteiroFaixa("Idade do usuário: ", 1, 120);
+    if (consumirRetornoMenuSolicitado()) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    temporario.rendaMensal = lerDoubleMinimo("Renda mensal total: R$ ", 0.0, 0);
+    if (consumirRetornoMenuSolicitado()) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    temporario.dinheiroGuardadoInvestir = lerDoubleMinimo("Dinheiro guardado disponível para investir agora: R$ ", 0.0, 1);
+    if (consumirRetornoMenuSolicitado()) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    desativarAtalhoRetornoMenu();
+
+    for (i = 0; i < MAX_GASTOS; i++) {
+        temporario.gastos[i] = 0.0;
+    }
+
+    temporario.totalGastos = 0.0;
+    temporario.sobraInvestir = 0.0;
+    temporario.metodoOrcamento = -1;
+    temporario.perfilInvestidor = 0;
+    temporario.preenchido = 1;
+    *orcamento = temporario;
+
+    limparTela();
+    printf("%sDados cadastrados com sucesso.%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%sAgora use a opção 2 para responder o questionário completo e definir seu perfil de investidor.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    retornarMenuPrincipal();
+}
+
+void escolherPesosColorido(Carteira *carteira, Orcamento *orcamento, const char categorias[MAX_GASTOS][30]) {
+    int perfil;
+    int metodoRecomendado;
+    int metodoEscolhido;
+
+    limparTela();
+    printf("%s=============== QUESTIONÁRIO E PERFIL ===============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+
+    if (!orcamento->preenchido) {
+        printf("%sDados financeiros ainda não cadastrados. Use a opção 1 primeiro.%s\n",
+               corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+        retornarMenuPrincipal();
+        return;
+    }
+
+    printf("%sNesta opção, o sistema fará um questionário completo para:%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s- sugerir um método de orçamento;%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%s- definir seu perfil de investidor;%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%s- calcular os pesos percentuais da carteira.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    exibirAtalhoRetornoMenu();
+
+    ativarAtalhoRetornoMenu();
+    perfil = identificarPerfilQuestionarioIntegrado(orcamento, &metodoRecomendado);
+    if (perfil == 0) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    metodoEscolhido = escolherMetodoOrcamento(metodoRecomendado);
+    if (metodoEscolhido < 0) {
+        desativarAtalhoRetornoMenu();
+        return;
+    }
+
+    definirPerfilAutomatico(carteira, perfil);
+    carteira->preenchida = 1;
+
+    orcamento->metodoOrcamento = metodoEscolhido;
+    orcamento->perfilInvestidor = perfil;
+    calcularOrcamentoIdeal(orcamento);
+
+    desativarAtalhoRetornoMenu();
+    limparTela();
+    exibirPlanoOrcamento(orcamento, carteira, categorias);
+    retornarMenuPrincipal();
+}
+
+void cadastrarCarteiraAtualColorida(Carteira *carteira) {
+    int i;
+    double valoresOriginais[MAX_ATIVOS];
+    double precosOriginais[MAX_ATIVOS];
+    double quantidadesOriginais[MAX_ATIVOS];
+    double totalAtual = 0.0;
+
+    limparTela();
+    printf("%s=============== CARTEIRA ATUAL ===============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sNesta etapa, informe quanto dinheiro você já tem em cada tipo de investimento.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sNão é necessário saber preço de cota, quantidade ou termos de corretora.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%sDigite apenas o valor total em reais.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%sExemplos:%s\n", corTerminal(COR_SECAO), corTerminal(COR_RESET));
+    printf("%s- Tenho R$ 500 em Tesouro Selic: digite 500%s\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Tenho R$ 120 em FIIs: digite 120%s\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Ainda não tenho esse investimento: digite 0%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    exibirAtalhoRetornoMenu();
+
+    ativarAtalhoRetornoMenu();
+
+    for (i = 0; i < MAX_ATIVOS; i++) {
+        valoresOriginais[i] = carteira->valoresAtuais[i];
+        precosOriginais[i] = carteira->precos[i];
+        quantidadesOriginais[i] = carteira->quantidades[i];
+    }
+
+    for (i = 0; i < MAX_ATIVOS; i++) {
+        char mensagem[170];
+
+        snprintf(mensagem, sizeof(mensagem), "Quanto você já tem em %s? R$ ", carteira->nomes[i]);
+        carteira->valoresAtuais[i] = lerDoubleMinimo(mensagem, 0.0, 1);
+        if (consumirRetornoMenuSolicitado()) {
+            for (i = 0; i < MAX_ATIVOS; i++) {
+                carteira->valoresAtuais[i] = valoresOriginais[i];
+                carteira->precos[i] = precosOriginais[i];
+                carteira->quantidades[i] = quantidadesOriginais[i];
+            }
+            desativarAtalhoRetornoMenu();
+            return;
+        }
+
+        carteira->precos[i] = carteira->valoresAtuais[i];
+        carteira->quantidades[i] = carteira->valoresAtuais[i] > 0.0 ? 1.0 : 0.0;
+        totalAtual += carteira->valoresAtuais[i];
+    }
+
+    desativarAtalhoRetornoMenu();
+    limparTela();
+    printf("%sCarteira atual cadastrada com sucesso.%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%sTotal que você já possui investido: R$ %.2f%s\n",
+           corTerminal(COR_INFO), totalAtual, corTerminal(COR_RESET));
+
+    if (totalAtual == 0.0) {
+        printf("%sTudo bem se você ainda não tem investimentos. O simulador usará seu aporte mensal e o dinheiro guardado disponível para sugerir os primeiros aportes.%s\n",
+               corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    } else {
+        printf("%sEsses valores serão comparados com os percentuais da opção 2 para mostrar o rebalanceamento.%s\n",
+               corTerminal(COR_INFO), corTerminal(COR_RESET));
+    }
+
+    retornarMenuPrincipal();
+}
+
+void exibirAjudaInvestimentosColorida(void) {
+    limparTela();
+    printf("%s============== AJUDA PARA INICIANTES ==============%s\n",
+           corTerminal(COR_TITULO), corTerminal(COR_RESET));
+    printf("%sEste programa não substitui um profissional, mas ajuda a organizar ideias.%s\n\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+
+    printf("%s1. Reserva de emergência%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%s   É o primeiro passo e deve ficar em algo seguro, com liquidez diária.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s   Exemplos: Tesouro Selic, CDB com liquidez diária e fundo DI simples.%s\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+    printf("%s   Objetivo: cobrir de 3 a 6 meses de gastos essenciais.%s\n\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+
+    printf("%s2. Renda fixa conservadora%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%s   Boa para quem está começando e quer previsibilidade.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s   Exemplos: CDB, LCI, LCA e Tesouro Selic. Compare rentabilidade, prazo e garantia do FGC.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+
+    printf("%s3. Tesouro IPCA+%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%s   Ajuda a proteger o dinheiro da inflação no longo prazo.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s   Pode oscilar antes do vencimento; portanto, combina melhor com objetivos distantes.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+
+    printf("%s4. Fundos imobiliários (FIIs)%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%s   São negociados na bolsa e podem pagar rendimentos mensais.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s   Possuem risco de mercado, vacância, gestão e mudança nos rendimentos.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+
+    printf("%s5. ETFs de ações%s\n", corTerminal(COR_SUCESSO), corTerminal(COR_RESET));
+    printf("%s   São fundos negociados em bolsa que compram várias ações de uma vez.%s\n",
+           corTerminal(COR_TEXTO_PADRAO), corTerminal(COR_RESET));
+    printf("%s   Servem para diversificar sem escolher empresa por empresa, mas oscilam bastante.%s\n\n",
+           corTerminal(COR_INFO), corTerminal(COR_RESET));
+
+    printf("%sRegra simples para iniciantes:%s\n", corTerminal(COR_SECAO), corTerminal(COR_RESET));
+    printf("%s- Quite dívidas caras antes de investir.%s\n", corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Monte uma reserva de emergência antes de correr risco.%s\n", corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Invista todo mês, mesmo que seja pouco.%s\n", corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Rebalanceie quando um investimento ficar muito acima ou abaixo da meta.%s\n",
+           corTerminal(COR_ALERTA), corTerminal(COR_RESET));
+    printf("%s- Desconfie de promessas de ganho rápido e garantido.%s\n",
+           corTerminal(COR_ERRO), corTerminal(COR_RESET));
 
     retornarMenuPrincipal();
 }
