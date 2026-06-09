@@ -152,8 +152,10 @@ void imprimirCabecalhoTabela2(const char *coluna1, const char *coluna2, int larg
 void inicializarCarteira(Carteira *carteira);
 void calcularOrcamentoIdeal(Orcamento *orcamento);
 int recomendarMetodoOrcamento(const Orcamento *orcamento);
+int recomendarMetodoOrcamentoComLimpeza(const Orcamento *orcamento);
 int escolherMetodoOrcamento(int metodoRecomendado);
 int identificarPerfilQuestionarioIntegrado(const Orcamento *orcamento, int *metodoRecomendado);
+int identificarPerfilQuestionarioIntegradoComLimpeza(const Orcamento *orcamento, int *metodoRecomendado);
 const MetodoOrcamento *obterMetodoOrcamento(int indice);
 void exibirPlanoOrcamento(const Orcamento *orcamento, const Carteira *carteira, const char categorias[MAX_GASTOS][30]);
 double calcularAporteDisponivelInvestimento(const Orcamento *orcamento);
@@ -1516,7 +1518,7 @@ void escolherPesos(Carteira *carteira, Orcamento *orcamento, const char categori
     exibirAtalhoRetornoMenu();
 
     ativarAtalhoRetornoMenu();
-    perfil = identificarPerfilQuestionarioIntegrado(orcamento, &metodoRecomendado);
+    perfil = identificarPerfilQuestionarioIntegradoComLimpeza(orcamento, &metodoRecomendado);
     if (perfil == 0) {
         desativarAtalhoRetornoMenu();
         return;
@@ -1991,6 +1993,194 @@ void cadastrarOrcamentoColorido(Orcamento *orcamento) {
     retornarMenuPrincipal();
 }
 
+int recomendarMetodoOrcamentoComLimpeza(const Orcamento *orcamento) {
+    int pontuacao = 0;
+    int resposta;
+    int metodoRecomendado;
+    double mesesReserva = 0.0;
+
+    limparTela();
+    printf("Questionario para escolher um metodo de organizacao financeira:\n");
+    printf("Responda com 1, 2 ou 3 em cada pergunta.\n\n");
+    printf("1) Como fica seu orcamento depois de pagar as contas essenciais?\n");
+    printf("1 - Fica apertado ou falta dinheiro\n");
+    printf("2 - Sobra pouco, mas consigo me organizar\n");
+    printf("3 - Sobra com frequencia\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return -1;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("2) Como esta sua reserva de emergencia?\n");
+    printf("1 - Ainda nao tenho, ou ela ainda e muito pequena\n");
+    printf("2 - Estou montando aos poucos\n");
+    printf("3 - Ja cobre alguns meses de gastos\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return -1;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("3) Qual e sua prioridade agora?\n");
+    printf("1 - Organizar a vida financeira e evitar aperto\n");
+    printf("2 - Equilibrar gastos, lazer e investimentos\n");
+    printf("3 - Acelerar investimentos e objetivos\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return -1;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("4) Quanto voce aceitaria reduzir lazer/estilo de vida para investir mais?\n");
+    printf("1 - Pouco; preciso manter mais folga no mes\n");
+    printf("2 - Um pouco, desde que o plano continue realista\n");
+    printf("3 - Bastante; quero priorizar objetivos financeiros\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return -1;
+    }
+    pontuacao += resposta;
+    limparTela();
+
+    if (orcamento->rendaMensal > 0.0) {
+        mesesReserva = orcamento->dinheiroGuardadoInvestir / orcamento->rendaMensal;
+    }
+
+    if (pontuacao <= 5) {
+        metodoRecomendado = 0;
+    } else if (pontuacao <= 7) {
+        metodoRecomendado = 1;
+    } else if (pontuacao <= 10) {
+        metodoRecomendado = 2;
+    } else {
+        metodoRecomendado = 3;
+    }
+
+    if (mesesReserva < 1.0 && metodoRecomendado > 0) {
+        metodoRecomendado--;
+    } else if (mesesReserva >= 6.0 && metodoRecomendado < 3) {
+        metodoRecomendado++;
+    }
+
+    if (orcamento->idade >= 55 && metodoRecomendado > 0) {
+        metodoRecomendado--;
+    } else if (orcamento->idade <= 30 && mesesReserva >= 2.0 && metodoRecomendado < 3) {
+        metodoRecomendado++;
+    }
+
+    return metodoRecomendado;
+}
+
+int identificarPerfilQuestionarioIntegradoComLimpeza(const Orcamento *orcamento, int *metodoRecomendado) {
+    int pontuacao = 0;
+    int resposta;
+    int perfil;
+    double mesesReserva = 0.0;
+
+    if (metodoRecomendado == NULL) {
+        return 0;
+    }
+
+    *metodoRecomendado = recomendarMetodoOrcamentoComLimpeza(orcamento);
+    if (*metodoRecomendado < 0) {
+        return 0;
+    }
+
+    limparTela();
+    printf("Agora vamos definir seu perfil de investidor:\n");
+    printf("Responda com 1, 2 ou 3 em cada pergunta.\n\n");
+    printf("1) Qual seu objetivo principal ao investir?\n");
+    printf("1 - Preservar meu dinheiro com baixo risco\n");
+    printf("2 - Equilibrar seguranca e crescimento\n");
+    printf("3 - Buscar maior crescimento, aceitando oscilacoes\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("2) Por quanto tempo voce pretende deixar o dinheiro investido?\n");
+    printf("1 - Menos de 2 anos\n");
+    printf("2 - Entre 2 e 5 anos\n");
+    printf("3 - Mais de 5 anos\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("3) Se sua carteira cair 10%% em alguns meses, o que voce faria?\n");
+    printf("1 - Resgataria para evitar mais perdas\n");
+    printf("2 - Manteria e aguardaria a recuperacao\n");
+    printf("3 - Aproveitaria para investir mais\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("4) Qual e seu nivel de experiencia com investimentos?\n");
+    printf("1 - Iniciante\n");
+    printf("2 - Intermediario\n");
+    printf("3 - Avancado\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+
+    limparTela();
+    printf("5) Quanto de oscilacao voce aceita para buscar mais retorno?\n");
+    printf("1 - Quase nenhuma oscilacao\n");
+    printf("2 - Oscilacao moderada\n");
+    printf("3 - Oscilacao alta\n");
+    resposta = lerInteiroFaixa("Resposta: ", 1, 3);
+    if (consumirRetornoMenuSolicitado()) {
+        return 0;
+    }
+    pontuacao += resposta;
+    limparTela();
+
+    if (pontuacao <= 8) {
+        perfil = 1;
+    } else if (pontuacao <= 11) {
+        perfil = 2;
+    } else {
+        perfil = 3;
+    }
+
+    if (orcamento->rendaMensal > 0.0) {
+        mesesReserva = orcamento->dinheiroGuardadoInvestir / orcamento->rendaMensal;
+    }
+
+    if (mesesReserva < 1.0 && perfil > 1) {
+        perfil--;
+    } else if (mesesReserva >= 6.0 && perfil < 3) {
+        perfil++;
+    }
+
+    if (orcamento->idade >= 60 && perfil > 1) {
+        perfil--;
+    } else if (orcamento->idade <= 30 && mesesReserva >= 2.0 && perfil < 3) {
+        perfil++;
+    }
+
+    if (*metodoRecomendado == 0 && perfil > 1) {
+        perfil--;
+    } else if (*metodoRecomendado == 3 && perfil < 3) {
+        perfil++;
+    }
+
+    return perfil;
+}
+
 void escolherPesosColorido(Carteira *carteira, Orcamento *orcamento, const char categorias[MAX_GASTOS][30]) {
     int perfil;
     int metodoRecomendado;
@@ -2018,7 +2208,7 @@ void escolherPesosColorido(Carteira *carteira, Orcamento *orcamento, const char 
     exibirAtalhoRetornoMenu();
 
     ativarAtalhoRetornoMenu();
-    perfil = identificarPerfilQuestionarioIntegrado(orcamento, &metodoRecomendado);
+    perfil = identificarPerfilQuestionarioIntegradoComLimpeza(orcamento, &metodoRecomendado);
     if (perfil == 0) {
         desativarAtalhoRetornoMenu();
         return;
